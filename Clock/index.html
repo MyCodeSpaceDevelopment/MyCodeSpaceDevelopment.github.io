@@ -1,0 +1,350 @@
+  <!DOCTYPE html>
+  <html>
+  <head>
+      <title>3D Flipping Clock</title>
+      <style>
+          body {
+              background: #000;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              margin: 0;
+              font-family: Arial, sans-serif;
+          }
+
+          .clock {
+              display: flex;
+              gap: 20px;
+              perspective: 1000px;
+          }
+
+          .digit {
+              position: relative;
+              width: 100px;
+              height: 150px;
+              transform-style: preserve-3d;
+          }
+
+          .card {
+              position: absolute;
+              width: 100%;
+              height: 100%;
+              background: #333;
+              color: #fff;
+              font-size: 80px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              border-radius: 10px;
+              backface-visibility: hidden;
+              transition: all 0.6s;
+              box-shadow: 0 0 10px rgba(255,255,255,0.2);
+          }
+
+          .card.front {
+              transform: rotateX(0deg);
+          }
+
+          .card.back {
+              transform: rotateX(180deg);
+          }
+
+          .flip .front {
+              transform: rotateX(-180deg);
+          }
+
+          .flip .back {
+              transform: rotateX(0deg);
+          }
+
+          .colon {
+              font-size: 80px;
+              color: #fff;
+              display: flex;
+              align-items: center;
+          }
+
+          .controls {
+              position: fixed;
+              top: 20px;
+              left: 20px;
+              background: rgba(255,255,255,0.1);
+              padding: 20px;
+              border-radius: 10px;
+              transition: transform 0.3s;
+          }
+
+          .controls.hidden {
+              transform: translateX(-100%);
+          }
+
+          .controls input, .controls button, .controls select {
+              display: block;
+              margin: 10px 0;
+              padding: 5px;
+              width: 100%;
+          }
+
+          .control-group {
+              margin-bottom: 15px;
+              border-bottom: 1px solid rgba(255,255,255,0.1);
+              padding-bottom: 10px;
+          }
+
+          .control-group h3 {
+              color: white;
+              margin: 5px 0;
+          }
+
+          #devEditor {
+              margin-top: 10px;
+          }
+
+          #codeEditor {
+              width: 100%;
+              height: 300px;
+              margin-top: 10px;
+              background: #1e1e1e;
+              color: #fff;
+              font-family: monospace;
+              resize: vertical;
+              padding: 10px;
+              box-sizing: border-box;
+          }
+
+          /* Animation types */
+          .rotateX .flip .front { transform: rotateX(-180deg); }
+          .rotateX .flip .back { transform: rotateX(0deg); }
+
+          .rotateY .flip .front { transform: rotateY(-180deg); }
+          .rotateY .flip .back { transform: rotateY(0deg); }
+
+          .fade .flip .front { opacity: 0; }
+          .fade .flip .back { transform: rotateX(0); opacity: 1; }
+
+          .slide .flip .front { transform: translateY(-100%); }
+          .slide .flip .back { transform: translateY(0); }
+      </style>
+  </head>
+  <body>
+      <div class="controls">
+          <button onclick="toggleControls()">Hide UI</button>
+          
+          <div class="control-group">
+              <h3>Colors</h3>
+              <input type="color" id="bgColor" onchange="updateStyle('background')" value="#333">
+              <label for="bgColor">Background Color</label>
+              <input type="color" id="textColor" onchange="updateStyle('color')" value="#ffffff">
+              <label for="textColor">Text Color</label>
+              <input type="color" id="shadowColor" onchange="updateStyle('shadow')" value="#ffffff">
+              <label for="shadowColor">Shadow Color</label>
+          </div>
+
+          <div class="control-group">
+              <h3>Animations</h3>
+              <input type="range" id="transition" min="0.1" max="2" step="0.1" value="0.6" onchange="updateStyle('transition')">
+              <label for="transition">Transition Speed</label>
+              <select id="animationType" onchange="updateStyle('animation')">
+                  <option value="rotateX">Flip Vertical</option>
+                  <option value="rotateY">Flip Horizontal</option>
+                  <option value="fade">Fade</option>
+                  <option value="slide">Slide</option>
+              </select>
+              <label for="animationType">Animation Type</label>
+          </div>
+
+          <div class="control-group">
+              <h3>Appearance</h3>
+              <input type="range" id="fontSize" min="40" max="120" value="80" onchange="updateStyle('fontSize')">
+              <label for="fontSize">Font Size</label>
+              <input type="range" id="borderRadius" min="0" max="50" value="10" onchange="updateStyle('borderRadius')">
+              <label for="borderRadius">Border Radius</label>
+              <select id="fontFamily" onchange="updateStyle('fontFamily')">
+                  <option value="Arial">Arial</option>
+                  <option value="Helvetica">Helvetica</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Courier New">Courier New</option>
+                  <option value="Georgia">Georgia</option>
+              </select>
+              <label for="fontFamily">Font Family</label>
+          </div>
+
+          <div class="control-group">
+              <h3>Time Format</h3>
+              <select id="timeFormat" onchange="updateStyle('timeFormat')">
+                  <option value="12">12-hour</option>
+                  <option value="24">24-hour</option>
+              </select>
+              <label for="timeFormat">Time Format</label>
+          </div>
+
+          <div class="control-group">
+              <h3>Developer Mode</h3>
+              <button onclick="toggleDevMode()">Enable Developer Mode</button>
+              <div id="devEditor">
+                  <textarea id="codeEditor"></textarea>
+                  <button onclick="applyChanges()">Apply Changes</button>
+              </div>
+          </div>
+      </div>
+
+      <div class="clock rotateX">
+          <div class="digit hours-tens">
+              <div class="card front">0</div>
+              <div class="card back">0</div>
+          </div>
+          <div class="digit hours-ones">
+              <div class="card front">0</div>
+              <div class="card back">0</div>
+          </div>
+          <div class="colon">:</div>
+          <div class="digit minutes-tens">
+              <div class="card front">0</div>
+              <div class="card back">0</div>
+          </div>
+          <div class="digit minutes-ones">
+              <div class="card front">0</div>
+              <div class="card back">0</div>
+          </div>
+          <div class="colon">:</div>
+          <div class="digit seconds-tens">
+              <div class="card front">0</div>
+              <div class="card back">0</div>
+          </div>
+          <div class="digit seconds-ones">
+              <div class="card front">0</div>
+              <div class="card back">0</div>
+          </div>
+      </div>
+
+      <script>
+          let use24HourFormat = false;
+          let devModeEnabled = false;
+
+          function toggleDevMode() {
+              devModeEnabled = !devModeEnabled;
+              const devEditor = document.getElementById('devEditor');
+              const codeEditor = document.getElementById('codeEditor');
+              const button = document.querySelector('[onclick="toggleDevMode()"]');
+              
+              if (devModeEnabled) {
+                  devEditor.style.display = 'block';
+                  button.textContent = 'Disable Developer Mode';
+                  codeEditor.value = document.documentElement.outerHTML;
+              } else {
+                  devEditor.style.display = 'none';
+                  button.textContent = 'Enable Developer Mode';
+              }
+          }
+
+          function applyChanges() {
+              if (!devModeEnabled) return;
+              const codeEditor = document.getElementById('codeEditor');
+              try {
+                  document.documentElement.innerHTML = codeEditor.value;
+                  // Reinitialize the clock
+                  setInterval(updateClock, 1000);
+                  updateClock();
+              } catch (error) {
+                  alert('Error applying changes: ' + error.message);
+              }
+          }
+
+          function updateClock() {
+              const now = new Date();
+              let hours = now.getHours();
+              const ampm = hours >= 12 ? 'PM' : 'AM';
+              
+              if (!use24HourFormat) {
+                  hours = hours % 12;
+                  hours = hours ? hours : 12;
+              }
+              
+              const hoursStr = String(hours).padStart(2, '0');
+              const minutes = String(now.getMinutes()).padStart(2, '0');
+              const seconds = String(now.getSeconds()).padStart(2, '0');
+
+              updateDigit('hours-tens', hoursStr[0]);
+              updateDigit('hours-ones', hoursStr[1]);
+              updateDigit('minutes-tens', minutes[0]);
+              updateDigit('minutes-ones', minutes[1]);
+              updateDigit('seconds-tens', seconds[0]);
+              updateDigit('seconds-ones', seconds[1]);
+          }
+
+          function updateDigit(className, newValue) {
+              const digit = document.querySelector(`.${className}`);
+              const front = digit.querySelector('.front');
+              const back = digit.querySelector('.back');
+
+              if (front.textContent !== newValue) {
+                  back.textContent = newValue;
+                  digit.classList.add('flip');
+
+                  setTimeout(() => {
+                      front.textContent = newValue;
+                      digit.classList.remove('flip');
+                  }, 600);
+              }
+          }
+
+          function updateStyle(property) {
+              const cards = document.querySelectorAll('.card');
+              const colons = document.querySelectorAll('.colon');
+              const clock = document.querySelector('.clock');
+              
+              switch(property) {
+                  case 'background':
+                      const bgColor = document.getElementById('bgColor').value;
+                      cards.forEach(card => card.style.background = bgColor);
+                      break;
+                  case 'color':
+                      const textColor = document.getElementById('textColor').value;
+                      cards.forEach(card => card.style.color = textColor);
+                      colons.forEach(colon => colon.style.color = textColor);
+                      break;
+                  case 'shadow':
+                      const shadowColor = document.getElementById('shadowColor').value;
+                      cards.forEach(card => card.style.boxShadow = `0 0 10px ${shadowColor}`);
+                      break;
+                  case 'transition':
+                      const speed = document.getElementById('transition').value;
+                      cards.forEach(card => card.style.transition = `all ${speed}s`);
+                      break;
+                  case 'fontSize':
+                      const size = document.getElementById('fontSize').value;
+                      cards.forEach(card => card.style.fontSize = `${size}px`);
+                      colons.forEach(colon => colon.style.fontSize = `${size}px`);
+                      break;
+                  case 'borderRadius':
+                      const radius = document.getElementById('borderRadius').value;
+                      cards.forEach(card => card.style.borderRadius = `${radius}px`);
+                      break;
+                  case 'fontFamily':
+                      const font = document.getElementById('fontFamily').value;
+                      clock.style.fontFamily = font;
+                      break;
+                  case 'timeFormat':
+                      use24HourFormat = document.getElementById('timeFormat').value === '24';
+                      updateClock();
+                      break;
+                  case 'animation':
+                      const animationType = document.getElementById('animationType').value;
+                      clock.className = 'clock ' + animationType;
+                      break;
+              }
+          }
+
+          function toggleControls() {
+              const controls = document.querySelector('.controls');
+              controls.classList.toggle('hidden');
+              const button = controls.querySelector('button');
+              button.textContent = controls.classList.contains('hidden') ? 'Show UI' : 'Hide UI';
+          }
+
+          setInterval(updateClock, 1000);
+          updateClock();
+      </script>
+  </body>
+  </html>
